@@ -228,8 +228,8 @@ body {
 }
 
 .hero-image img {
-    width: clamp(300px, 40vw, 400px);
-    height: clamp(300px, 40vw, 400px);
+    width: clamp(300px, 45vw, 400px);
+    height: clamp(300px, 45vw, 400px);
     border-radius: 50%;
     object-fit: contain;
     object-position: center;
@@ -1108,6 +1108,7 @@ body {
         padding-right: calc((100% - 1400px) / 2);
     }
 }}
+
 
 
 
