@@ -2,170 +2,220 @@
 const menu = document.querySelector("#menu");
 const toggle = document.querySelector("#toggle");
 
-toggle.addEventListener("click", function() {
+toggle.addEventListener("click", function () {
     menu.classList.toggle("show-menu");
+    // Toggle icon between menu and close
+    this.classList.toggle("ri-menu-fill");
+    this.classList.toggle("ri-close-line");
 });
 
-// Close menu when clicking on a link
-const navLinks = document.querySelectorAll(".nav-link");
-navLinks.forEach(link => {
-    link.addEventListener("click", function() {
+// Close menu when clicking a nav link
+document.querySelectorAll(".nav-link").forEach(link => {
+    link.addEventListener("click", () => {
         menu.classList.remove("show-menu");
+        toggle.classList.add("ri-menu-fill");
+        toggle.classList.remove("ri-close-line");
     });
 });
 
-// ==================== TYPED.JS INITIALIZATION ====================
+// Close menu when clicking outside
+document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+        menu.classList.remove("show-menu");
+        toggle.classList.add("ri-menu-fill");
+        toggle.classList.remove("ri-close-line");
+    }
+});
+
+// ==================== TYPED.JS ====================
 const typed = new Typed(".typed-text", {
-    strings: ["Frontend Developer", "UI/UX Enthusiast", "Web Developer"],
-    typeSpeed: 100,
-    backSpeed: 60,
-    backDelay: 1500,
-    startDelay: 500,
+    strings: ["Frontend Developer", "UI/UX Enthusiast", "Web Developer", "Problem Solver"],
+    typeSpeed: 90,
+    backSpeed: 50,
+    backDelay: 1800,
+    startDelay: 600,
     loop: true,
     showCursor: true,
     cursorChar: "|",
     smartBackspace: true
 });
 
-// ==================== SCROLL SPY - ACTIVE NAVIGATION ====================
+// ==================== NAVBAR SCROLL BEHAVIOR ====================
+const navbar = document.querySelector(".navbar");
 const sections = document.querySelectorAll("section[id]");
-const navLinksForSpy = document.querySelectorAll(".nav-link");
+const navLinks = document.querySelectorAll(".nav-link");
 
-function updateActiveNav() {
-    const scrollY = window.pageYOffset;
+let lastScrollY = 0;
+let ticking = false;
 
-    sections.forEach(section => {
-        const sectionHeight = section.offsetHeight;
-        const sectionTop = section.offsetTop - 100;
-        const sectionId = section.getAttribute("id");
-        
-        if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-            navLinksForSpy.forEach(link => {
-                link.classList.remove("active");
-                if (link.getAttribute("href") === `#${sectionId}`) {
-                    link.classList.add("active");
-                }
-            });
-        }
-    });
+function updateNavbar() {
+    const scrollY = window.scrollY;
 
-    // Update navbar style on scroll
-    const navbar = document.querySelector(".navbar");
-    if (scrollY > 50) {
+    // Scrolled class for shrink effect
+    if (scrollY > 60) {
         navbar.classList.add("scrolled");
     } else {
         navbar.classList.remove("scrolled");
     }
+
+    // Active nav link (scroll spy)
+    sections.forEach(section => {
+        const top = section.offsetTop - 100;
+        const bottom = top + section.offsetHeight;
+        const id = section.getAttribute("id");
+
+        if (scrollY >= top && scrollY < bottom) {
+            navLinks.forEach(link => link.classList.remove("active"));
+            const activeLink = document.querySelector(`.nav-link[href="#${id}"]`);
+            if (activeLink) activeLink.classList.add("active");
+        }
+    });
+
+    lastScrollY = scrollY;
+    ticking = false;
 }
 
-window.addEventListener("scroll", updateActiveNav);
+window.addEventListener("scroll", () => {
+    if (!ticking) {
+        window.requestAnimationFrame(updateNavbar);
+        ticking = true;
+    }
+}, { passive: true });
 
-// ==================== SMOOTH SCROLLING ====================
+// ==================== SMOOTH SCROLL ====================
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    anchor.addEventListener("click", function (e) {
+        const href = this.getAttribute("href");
+        if (href === "#") return;
+        const target = document.querySelector(href);
+        if (!target) return;
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        
-        if (target) {
-            const navbarHeight = document.querySelector('.navbar').offsetHeight;
-            const targetPosition = target.offsetTop - navbarHeight;
-            
-            window.scrollTo({
-                top: targetPosition,
-                behavior: 'smooth'
-            });
-        }
+
+        const offset = navbar.offsetHeight + 20;
+        const top = target.getBoundingClientRect().top + window.scrollY - offset;
+
+        window.scrollTo({ top, behavior: "smooth" });
     });
 });
 
-// ==================== INTERSECTION OBSERVER FOR ANIMATIONS ====================
-const observerOptions = {
+// ==================== INTERSECTION OBSERVER — SCROLL ANIMATIONS ====================
+const observerConfig = {
     threshold: 0.1,
-    rootMargin: "0px 0px -50px 0px"
+    rootMargin: "0px 0px -60px 0px"
 };
 
-const animateOnScroll = new IntersectionObserver((entries) => {
+const scrollObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             entry.target.classList.add("slide-in-active");
-            // Optionally unobserve after animation
-            // animateOnScroll.unobserve(entry.target);
+            scrollObserver.unobserve(entry.target); // animate once
         }
     });
-}, observerOptions);
+}, observerConfig);
 
-// Observe all elements with .slide-in class
-const elementsToAnimate = document.querySelectorAll(".slide-in, .feature-box, .timeline-item, .professional-summary, .skill-item, .project-card");
-elementsToAnimate.forEach(el => animateOnScroll.observe(el));
+document.querySelectorAll(".slide-in").forEach(el => scrollObserver.observe(el));
 
+// ==================== PROJECT CARD TILT EFFECT ====================
+document.querySelectorAll(".project-card").forEach(card => {
+    card.addEventListener("mousemove", (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const rotX = ((y - cy) / cy) * 4;
+        const rotY = ((x - cx) / cx) * -4;
 
+        card.style.transform = `translateY(-10px) perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    });
 
-// ==================== CLICK Sound ====================
-// Uncomment if you have the audio file
-
-const clickSound = new Audio("hlogza.mp3");
-clickSound.preload = "auto";
-
-document.querySelectorAll(".btn, .hero-buttons a, .menu a").forEach(element => {
-    element.addEventListener("click", function() {
-        clickSound.currentTime = 0;
-        clickSound.play().catch(e => console.log("Audio play failed:", e));
+    card.addEventListener("mouseleave", () => {
+        card.style.transform = "";
+        card.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+        setTimeout(() => { card.style.transition = ""; }, 500);
     });
 });
 
+// ==================== SKILL HOVER TOOLTIP ====================
+const skillLabels = {
+    "HTML5": "HyperText Markup Language",
+    "CSS3": "Cascading Style Sheets",
+    "JavaScript": "ES6+ Scripting",
+    "jQuery": "JS Library",
+    "Bootstrap": "CSS Framework",
+    "Git": "Version Control",
+    "GitHub": "Code Hosting",
+    "Node.js": "Runtime Environment",
+    "Express": "Web Framework",
+    "EJS": "Embedded JavaScript Templates"
+};
 
-// ==================== PRELOAD ANIMATIONS ====================
-// Trigger initial animation check
-window.addEventListener('load', () => {
-    updateActiveNav();
-    
-    // Small delay to ensure smooth initial animations
-    setTimeout(() => {
-        const heroElements = document.querySelectorAll('.hero-image, .hero-content');
-        heroElements.forEach(el => el.style.opacity = '1');
-    }, 100);
+document.querySelectorAll(".skill-item").forEach(item => {
+    const label = item.querySelector("p")?.textContent.trim();
+    if (label && skillLabels[label]) {
+        item.setAttribute("title", skillLabels[label]);
+    }
 });
 
-// ==================== PERFORMANCE OPTIMIZATION ====================
-// Debounce scroll event for better performance
-let scrollTimeout;
-window.addEventListener("scroll", () => {
-    if (scrollTimeout) {
-        window.cancelAnimationFrame(scrollTimeout);
+// ==================== CLICK SOUND (optional) ====================
+try {
+    const clickSound = new Audio("hlogza.mp3");
+    clickSound.preload = "auto";
+    document.querySelectorAll(".btn, .overlay-btn").forEach(el => {
+        el.addEventListener("click", () => {
+            clickSound.currentTime = 0;
+            clickSound.play().catch(() => {});
+        });
+    });
+} catch (e) {}
+
+// ==================== KEYBOARD ACCESSIBILITY ====================
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && menu.classList.contains("show-menu")) {
+        menu.classList.remove("show-menu");
+        toggle.classList.add("ri-menu-fill");
+        toggle.classList.remove("ri-close-line");
+        toggle.focus();
     }
-    scrollTimeout = window.requestAnimationFrame(updateActiveNav);
+});
+
+toggle.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        menu.classList.toggle("show-menu");
+        if (menu.classList.contains("show-menu")) {
+            document.querySelector(".nav-link")?.focus();
+        }
+    }
+});
+
+// ==================== HERO PARALLAX (subtle) ====================
+window.addEventListener("scroll", () => {
+    const scrollY = window.scrollY;
+    const shapes = document.querySelectorAll(".shape");
+    shapes.forEach((shape, i) => {
+        const speed = 0.08 + i * 0.04;
+        shape.style.transform = `translateY(${scrollY * speed}px)`;
+    });
 }, { passive: true });
 
-// ==================== ACCESSIBILITY ENHANCEMENTS ====================
-// Add keyboard navigation support
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && menu.classList.contains('show-menu')) {
-        menu.classList.remove('show-menu');
-    }
-});
-
-// Focus management for mobile menu
-toggle.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        menu.classList.toggle('show-menu');
-        if (menu.classList.contains('show-menu')) {
-            navLinks[0]?.focus();
+// ==================== COUNTER ANIMATION (for future stats) ====================
+function animateCount(el, target, duration = 1500) {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+        start += step;
+        if (start >= target) {
+            el.textContent = target;
+            clearInterval(timer);
+        } else {
+            el.textContent = Math.floor(start);
         }
-    }
-});
-
-// ==================== LAZY LOADING FOR IMAGES ====================
-if ('loading' in HTMLImageElement.prototype) {
-    const images = document.querySelectorAll('img[loading="lazy"]');
-    images.forEach(img => {
-        img.src = img.dataset.src;
-    });
-} else {
-    // Fallback for browsers that don't support lazy loading
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js';
-    document.body.appendChild(script);
+    }, 16);
 }
 
-console.log("Portfolio initialized successfully! 🚀");
+// ==================== INIT ====================
+window.addEventListener("load", () => {
+    updateNavbar();
+    console.log("%c🚀 Portfolio loaded!", "color: #5777ff; font-weight: bold; font-size: 14px;");
+});
